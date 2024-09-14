@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RGB Guessing Game - Modern Design</title>
+    <style>
+        /* Grundlegende Stile */
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e0f7fa);
+            color: #333;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #ff69b4;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 4px rgba(255, 105, 180, 0.6);
+        }
+
+        #color-box {
+            width: 250px;
+            height: 250px;
+            margin: 20px auto;
+            border-radius: 12px;
+            border: 4px solid #ff69b4;
+            background-color: #fff;
+            box-shadow: 0 0 15px rgba(255, 105, 180, 0.5);
+        }
+
+        .input-container {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .input-container input {
+            width: 60px;
+            padding: 10px;
+            margin: 0 8px;
+            border-radius: 12px;
+            border: 2px solid #ff69b4;
+            text-align: center;
+            font-size: 16px;
+            background-color: #fff;
+            color: #ff69b4;
+            outline: none;
+            box-shadow: 0 2px 8px rgba(255, 105, 180, 0.3);
+        }
+
+        button {
+            padding: 12px 25px;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        #submit-btn {
+            background-color: #ff69b4;
+        }
+
+        #submit-btn:hover {
+            background-color: #ff1493;
+            transform: scale(1.05);
+        }
+
+        #show-solution-btn {
+            background-color: #00bcd4;
+        }
+
+        #show-solution-btn:hover {
+            background-color: #0097a7;
+            transform: scale(1.05);
+        }
+
+        #new-round-btn {
+            background-color: #e84393;
+        }
+
+        #new-round-btn:hover {
+            background-color: #d63070;
+            transform: scale(1.05);
+        }
+
+        #result, #feedback {
+            margin: 20px;
+            font-size: 1.2em;
+            color: #333;
+        }
+
+        #guessed-color {
+            width: 120px;
+            height: 120px;
+            margin: 20px auto;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 105, 180, 0.3);
+            background-color: #ffe6f2;
+        }
+
+        /* Animierter Hintergrund */
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+            background: linear-gradient(135deg, rgba(255, 182, 193, 0.5), rgba(0, 188, 212, 0.5));
+            animation: backgroundAnimation 15s infinite linear;
+        }
+
+        @keyframes backgroundAnimation {
+            0% {
+                background-position: 0% 0%;
+            }
+            100% {
+                background-position: 100% 100%;
+            }
+        }
+
+        /* Responsive Anpassung */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .input-container input {
+                width: 50px;
+                padding: 8px;
+                margin: 0 4px;
+            }
+
+            button {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+
+            #result, #feedback {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="background"></div>
+
+    <h1>Errate die Farbe!</h1>
+
+    <div id="color-box"></div>
+
+    <div class="input-container">
+        <input type="number" id="red" placeholder="R" min="0" max="255">
+        <input type="number" id="green" placeholder="G" min="0" max="255">
+        <input type="number" id="blue" placeholder="B" min="0" max="255">
+    </div>
+
+    <button id="submit-btn">Submit</button>
+    <button id="show-solution-btn" onclick="showSolution()">Lösung anzeigen</button>
+    <button id="new-round-btn" onclick="startNewRound()">Neue Runde</button>
+
+    <div id="result"></div>
+    <div id="feedback"></div>
+    <div id="guessed-color"></div>
+
+    <script>
+        // Globale Variablen
+        const colorBox = document.getElementById('color-box');
+        const resultDisplay = document.getElementById('result');
+        const feedbackDisplay = document.getElementById('feedback');
+        const guessedColorBox = document.getElementById('guessed-color');
+        const inputs = ['red', 'green', 'blue'].map(id => document.getElementById(id));
+        const newRoundBtn = document.getElementById('new-round-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const showSolutionBtn = document.getElementById('show-solution-btn');
+
+        let targetColor = generateRandomColor();
+        let attempts = 0;
+        const maxAttempts = 5;
+
+        // Zufällige Farbe generieren
+        function generateRandomColor() {
+            return {
+                r: Math.floor(Math.random() * 256),
+                g: Math.floor(Math.random() * 256),
+                b: Math.floor(Math.random() * 256)
+            };
+        }
+
+        // Farbe im Farbfeld anzeigen
+        function updateColorBox(color) {
+            colorBox.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
+        }
+
+        // Farbe raten
+        function submitGuess() {
+            const guess = {
+                r: parseInt(inputs[0].value, 10) || 0,
+                g: parseInt(inputs[1].value, 10) || 0,
+                b: parseInt(inputs[2].value, 10) || 0
+            };
+
+            if (!validateInput(guess)) {
+                alert('Bitte gib gültige Werte für alle Farben ein (0-255).');
+                return;
+            }
+
+            const distance = Math.sqrt(
+                Math.pow(targetColor.r - guess.r, 2) +
+                Math.pow(targetColor.g - guess.g, 2) +
+                Math.pow(targetColor.b - guess.b, 2)
+            );
+
+            const score = calculateScore(distance);
+            displayResult(score, guess);
+
+            attempts++;
+            if (attempts >= maxAttempts || score === 100) {
+                endGame();
+            }
+        }
+
+        // Überprüfung der Eingabewerte
+        function validateInput(color) {
+            return (color.r >= 0 && color.r <= 255) &&
+                   (color.g >= 0 && color.g <= 255) &&
+                   (color.b >= 0 && color.b <= 255);
+        }
+
+        // Berechnung der Punktzahl (0 bis 100)
+        function calculateScore(distance) {
+            const maxDistance = Math.sqrt(3 * Math.pow(255, 2));
+            return Math.max(0, Math.round((1 - distance / maxDistance) * 100));
+        }
+
+        // Ergebnis und geratene Farbe anzeigen
+        function displayResult(score, guess) {
+            resultDisplay.innerText = `Dein Score: ${score}/100`;
+
+            let feedback = "";
+            if (score === 100) {
+                feedback = "Perfekt! 😁";
+                feedbackDisplay.style.color = "#28a745";
+            } else if (score >= 90) {
+                feedback = "Fast perfekt! 😃";
+                feedbackDisplay.style.color = "#00bcd4";
+            } else if (score >= 80) {
+                feedback = "Sehr gut! 😊";
+                feedbackDisplay.style.color = "#17a2b8";
+            } else if (score >= 60) {
+                feedback = "Gut! 🙂";
+                feedbackDisplay.style.color = "#ffc107";
+            } else if (score >= 40) {
+                feedback = "Nicht so gut. 😐";
+                feedbackDisplay.style.color = "#fd7e14";
+            } else {
+                feedback = "Schlecht. 😞";
+                feedbackDisplay.style.color = "#dc3545";
+            }
+
+            feedbackDisplay.innerText = feedback;
+            guessedColorBox.style.backgroundColor = `rgb(${guess.r}, ${guess.g}, ${guess.b})`;
+        }
+
+        // Spielende
+        function endGame() {
+            submitBtn.disabled = true;
+        }
+
+        // Eine neue Runde starten
+        function startNewRound() {
+            targetColor = generateRandomColor();
+            updateColorBox(targetColor);
+            resultDisplay.innerText = "";
+            feedbackDisplay.innerText = "";
+            guessedColorBox.style.backgroundColor = "#ffe6f2";
+            submitBtn.disabled = false;
+            attempts = 0;
+            inputs.forEach(input => input.value = "");
+        }
+
+        // Lösung anzeigen
+        function showSolution() {
+            alert(`Die richtige Farbe war: RGB(${targetColor.r}, ${targetColor.g}, ${targetColor.b})`);
+        }
+
+        // Ereignis-Listener hinzufügen
+        submitBtn.addEventListener('click', submitGuess);
+        showSolutionBtn.addEventListener('click', showSolution);
+        newRoundBtn.addEventListener('click', startNewRound);
+
+        // Starte das Spiel beim Laden der Seite
+        updateColorBox(targetColor);
+    </script>
+</body>
+</html>
