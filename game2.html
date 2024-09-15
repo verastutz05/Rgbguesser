@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Life Color Guessing Game</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(120deg, #ffe4e1, #e0ffff);
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    h1 {
+      color: #ff69b4;
+    }
+
+    .container {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .input-container {
+      margin: 20px;
+      text-align: center;
+    }
+
+    button {
+      border: none;
+      padding: 10px 20px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: 0.3s ease;
+      margin: 5px;
+    }
+
+    #startButton {
+      background-color: #ff69b4; /* Pink */
+    }
+
+    #solutionButton {
+      background-color: #40e0d0; /* Türkis */
+    }
+
+    #newRoundButton {
+      background-color: #ff69b4; /* Pink */
+    }
+
+    #submitButton {
+      background-color: #40e0d0; /* Türkis */
+    }
+
+    #linkToFirstGame {
+      background-color: #ff69b4; /* Pink */
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    canvas, video {
+      max-width: 100%;
+      margin: 20px 0;
+    }
+
+    #canvas {
+      border: 2px solid #ff69b4;
+      display: none;
+    }
+
+    .result-box {
+      background-color: #ffe4e1;
+      padding: 10px;
+      border-radius: 10px;
+      margin: 20px;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    @media (max-width: 768px) {
+      canvas, video {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Real-Life Color Guessing Game</h1>
+
+  <div class="container">
+    <video id="video" width="300" height="300" autoplay></video>
+    <canvas id="canvas" width="300" height="300"></canvas>
+    <br>
+    <button id="startButton">Capture Image</button>
+    <button id="solutionButton">Show Solution</button>
+    <button id="newRoundButton">New Round</button>
+    <button id="linkToFirstGame" onclick="window.location.href='index.html'">Go to RGB Game</button>
+    
+    <div class="input-container">
+      <label for="red">Red: </label><input type="number" id="red" min="0" max="255">
+      <label for="green">Green: </label><input type="number" id="green" min="0" max="255">
+      <label for="blue">Blue: </label><input type="number" id="blue" min="0" max="255">
+      <br><br>
+      <button id="submitButton">Submit Guess</button>
+      <p id="result"></p>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    const startButton = document.getElementById('startButton');
+    const solutionButton = document.getElementById('solutionButton');
+    const newRoundButton = document.getElementById('newRoundButton');
+    const submitButton = document.getElementById('submitButton');
+
+    let actualColor = { r: 0, g: 0, b: 0 };
+    let photoTaken = false;
+
+    // Get the live camera feed working immediately in the first round
+    function startCamera() {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+        })
+        .catch(err => {
+          alert('Error accessing the camera: ' + err.message);
+        });
+    }
+
+    // Call this function on page load to ensure camera is started
+    startCamera();
+
+    startButton.addEventListener('click', () => {
+      if (!photoTaken) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const pixelData = imageData.data;
+        let totalR = 0, totalG = 0, totalB = 0, count = 0;
+        for (let i = 0; i < pixelData.length; i += 4) {
+          totalR += pixelData[i];
+          totalG += pixelData[i + 1];
+          totalB += pixelData[i + 2];
+          count++;
+        }
+        actualColor = {
+          r: Math.round(totalR / count),
+          g: Math.round(totalG / count),
+          b: Math.round(totalB / count)
+        };
+        photoTaken = true;
+        video.style.display = 'none';
+        canvas.style.display = 'block';
+      }
+    });
+
+    submitButton.addEventListener('click', () => {
+      const redInput = document.getElementById('red').value;
+      const greenInput = document.getElementById('green').value;
+      const blueInput = document.getElementById('blue').value;
+
+      const diff = Math.abs(redInput - actualColor.r) + Math.abs(greenInput - actualColor.g) + Math.abs(blueInput - actualColor.b);
+      let resultText;
+
+      if (diff === 0) {
+        resultText = "Perfect! You guessed the exact color!";
+      } else if (diff < 50) {
+        resultText = "Very close!";
+      } else if (diff < 100) {
+        resultText = "Close, but not quite.";
+      } else {
+        resultText = "Far off! Try again.";
+      }
+
+      document.getElementById('result').textContent = `Your Guess: RGB(${redInput}, ${greenInput}, ${blueInput}) - Actual: RGB(${actualColor.r}, ${actualColor.g}, ${actualColor.b}) - ${resultText}`;
+    });
+
+    solutionButton.addEventListener('click', () => {
+      alert(`Solution: RGB(${actualColor.r}, ${actualColor.g}, ${actualColor.b})`);
+    });
+
+    newRoundButton.addEventListener('click', () => {
+      video.style.display = 'block';
+      canvas.style.display = 'none';
+      photoTaken = false;
+      document.getElementById('result').textContent = '';
+      startCamera(); // Restart the camera feed for a new round
+    });
+  </script>
+</body>
+</html>
